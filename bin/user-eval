@@ -1,5 +1,4 @@
-#!/usr/bin/env nix-shell
-#!nix-shell -i bash -p inotifyTools jq
+#!/usr/bin/env bash
 set -euo pipefail
 
 if [[ "$#" > 0 ]]; then
@@ -12,12 +11,12 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 
 update() {
   echo "Evaluating.."
-  if output=$(nix-instantiate --eval --strict --json "$SCRIPT_DIR" --argstr participantToCheck "$user" -A config.users."$user"); then
+  if output=$(nix-instantiate --eval --strict --json "$SCRIPT_DIR/.." --argstr participantToCheck "$user" -A config.users."$user"); then
     echo "Successful:"
     jq <<< "$output"
-    if [[ -n "$1" ]] && ! cmp -s ~/module.nix /demo/modules/participants/"$user".nix; then
+    if [[ -n "$1" ]] && ! cmp -s ~/module.nix /demo/participants/"$user".nix; then
       #echo "Signalling"
-      cp ~/module.nix /demo/modules/participants/"$user".nix
+      cp ~/module.nix /demo/participants/"$user".nix
     #else
       #echo "Not signalling"
     fi
@@ -62,5 +61,5 @@ while [[ -n "$changed" ]] || read -u 3 file event; do
     fi
     changed=1
   done
-done 3< <(inotifywait -q -r -m -e create -e modify "$HOME/module.nix" "$SCRIPT_DIR" @"$SCRIPT_DIR"/modules/participants)
+done 3< <(inotifywait -q -r -m -e create -e modify "$HOME/module.nix" "$SCRIPT_DIR/.." @"$SCRIPT_DIR"/../participants)
 
