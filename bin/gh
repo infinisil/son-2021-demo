@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+
+cd "$SCRIPT_DIR/../modules"
+set -x
+
+currentCount=$(git rev-list --count HEAD)
+currentCount=$(( currentCount + 1 ))
+masterCount=$(git rev-list --count master)
+
+if [[ "$1" == "b" ]]; then
+  toCheckout=$(( masterCount - currentCount + 1 ))
+else
+  toCheckout=$(( masterCount - currentCount - 1 ))
+fi
+toReset=$(( toCheckout + 1 ))
+
+git reset --hard HEAD --quiet
+git clean -f -x -d .
+
+git checkout "master~$toCheckout"
+git reset "master~$toReset"
