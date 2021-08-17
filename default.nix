@@ -16,7 +16,7 @@ let
         imports = [ (./participants + "/${file}") ];
       }
     )
-  ) (builtins.readDir ./participants);
+  ) (lib.filterAttrs (name: value: lib.hasSuffix ".nix" name) (builtins.readDir ./participants));
 
   rootModule = { options, ... }: {
 
