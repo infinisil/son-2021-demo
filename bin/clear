@@ -8,7 +8,7 @@ cd /home/participants
 for user in *; do
   loginctl kill-user "$user"
   userdel -r "$user"
-  rm /demo/modules/participants/"$user".nix
+  rm /demo/participants/"$user".nix
 done
 
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-cachedir=~/.cache/geocache
+cachedir=~/.cache/google-api/geocode
 mkdir -p "$cachedir"
 hash=$(echo "$1" | sha256sum - | cut -d' ' -f1)
 cachefile="$cachedir/$hash"
