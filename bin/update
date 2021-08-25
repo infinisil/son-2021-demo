@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+
+ROOT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"/..
+
+if json=$(nix-instantiate --eval --strict --json "$ROOT_DIR" -A config.generate.script); then
+  script=$(jq -r . <<< "$json")
+  eval "$script"
+fi

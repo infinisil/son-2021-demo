@@ -1,42 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
-
-update() {
-  #echo "Updating.. "
-  if json=$(nix-instantiate --eval --strict --json "$SCRIPT_DIR/.." -A config.generate.script); then
-    script=$(jq -r . <<< "$json")
-    eval "$script"
-  fi
-  #sleep 3
-  #echo "Finished updating"
-}
+ROOT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"/..
 
 update
 
-changed=
-while [[ -n "$changed" ]] || read -u 3 mainevent; do
-  if [[ -n "$changed" ]]; then
-    #echo "Got some follow-up events, cooldown for 3 seconds"
-    changed=
-    sleep 3
-  #else
-    #echo "Event is $mainevent"
-  fi
-
-  #echo "Waiting for 0.1 sec to see if any further events arrive in just a bit"
-  sleep 0.1
-  while read -u 3 -t 0; do
-    read -u 3 event
-    #echo "Got further event $event"
-  done
-
-  update
-
-  while read -u 3 -t 0; do
-    read -u 3 event
-    #echo "Follow-up event is $event"
-    changed=1
-  done
-done 3< <(inotifywait -q -r -m -e create -e modify -e delete "$SCRIPT_DIR/..")
+inotifywait "$ROOT_DIR" --quiet --recursive --monitor \
+  --no-newline --format "%0" \
+  --event create --event modify --event delete | batch update

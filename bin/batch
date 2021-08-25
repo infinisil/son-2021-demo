@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+set -uo pipefail
+
+# Turns a continuous stream of null-separated strings into a batched one
+# Whenever a batch is ready, calls a command with stdin containing all the
+# read strings, each ending with a nul byte
+
+# Example for watching ./file for changes, triggering ./consume for every batch of changes
+#
+#   inotifywait file --quiet --monitor --event modify --no-newline --format "%e %w%0" | batch ./run
+#
+# Where ./run is a script like
+#
+#   echo "Received new events"
+#   while read -r -d '' event file; do
+#     echo "Got event $event for file $file"
+#   done
+
+# Cool down for this many seconds after calling the command
+cooldown=1
+
+# When a string is read, read more strings for this many seconds before calling the command
+followup=0.1
+
+declare -a strings
+
+while read -r -d '' str; do
+  strings+=("$str")
+  sleep "$followup"
+
+  while read -t 0 && read -r -d '' str; do
+    strings+=("$str")
+  done
+
+  printf '%s\0' "${strings[@]}" | "$@"
+  strings=()
+
+  sleep "$cooldown"
+done
+
