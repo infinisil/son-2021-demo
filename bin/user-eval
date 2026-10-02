@@ -1,65 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if [[ "$#" > 0 ]]; then
-  user=$(basename "$1")
-else
-  user=$USER
-fi
+echo "" | user-update
 
-SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
-
-update() {
-  echo "Evaluating.."
-  if output=$(nix-instantiate --eval --strict --json "$SCRIPT_DIR/.." --argstr participantToCheck "$user" -A config.users."$user"); then
-    echo "Successful:"
-    jq <<< "$output"
-    if [[ -n "$1" ]] && ! cmp -s ~/module.nix /demo/participants/"$user".nix; then
-      #echo "Signalling"
-      cp ~/module.nix /demo/participants/"$user".nix
-    #else
-      #echo "Not signalling"
-    fi
-  fi
-  echo ""
-}
-
-update ""
-
-signal=
-changed=
-while [[ -n "$changed" ]] || read -u 3 file event; do
-  if [[ -n "$changed" ]]; then
-    #echo "Got some follow-up events, cooldown for 3 seconds"
-    changed=
-    sleep 1
-  else
-    #echo "Event is $file $event"
-    if [[ "$file" == "$HOME/module.nix" ]]; then
-      signal=1
-    fi
-  fi
-
-  #echo "Waiting for 0.1 sec to see if any further events arrive in just a bit"
-  sleep 0.1
-  while read -u 3 -t 0; do
-    read -u 3 file event
-    #echo "Got further event $file $event"
-    if [[ "$file" == "$HOME/module.nix" ]]; then
-      signal=1
-    fi
-  done
-
-  update "$signal"
-  signal=
-
-  while read -u 3 -t 0; do
-    read -u 3 file event
-    #echo "Follow-up event is $file $event"
-    if [[ "$file" == "$HOME/module.nix" ]]; then
-      signal=1
-    fi
-    changed=1
-  done
-done 3< <(inotifywait -q -r -m -e create -e modify "$HOME/module.nix" "$SCRIPT_DIR/.." @"$SCRIPT_DIR"/../participants)
-
+inotifywait "$HOME/module.nix" "$ROOT_DIR" @"$ROOT_DIR/participants" \
+  --quiet --recursive --monitor \
+  --no-newline --format "%w%0" \
+  --event modify | batch user-update

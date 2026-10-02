@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"/..
+
+signal=
+while read -r -d '' file; do
+  if [[ "$file" == "$HOME/module.nix" ]]; then
+    signal=1
+  fi
+done
+
+echo "Evaluating.."
+if output=$(nix-instantiate --eval --strict --json "$ROOT_DIR" --argstr participantToCheck "$USER" -A config.users."$USER"); then
+  echo "Successful:"
+  jq <<< "$output"
+  if [[ -n "$1" ]] && ! cmp -s ~/module.nix "$ROOT_DIR"/participants/"$USER".nix; then
+    cp ~/module.nix "$ROOT_DIR"/participants/"$USER".nix
+  fi
+fi
+echo ""
